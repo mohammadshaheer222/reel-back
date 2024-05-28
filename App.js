@@ -8,10 +8,26 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+app.use((req, res, next) => {
+  console.log(`Request from origin: ${req.headers.origin}`);
+  next();
+});
 app.use(
   cors({
-    origin: ["http://localhost:5173","https://reelman-front.onrender.com"],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "https://reelman-front.onrender.com",
+      ];
+      if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use("/uploads", express.static("uploads"));
@@ -34,6 +50,7 @@ app.use(
 );
 
 app.use("/api/v2/user", userContactForm);
+
 //for error handling
 app.use(ErrorHandler);
 app.use(notFound);
