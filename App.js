@@ -10,12 +10,21 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://reelman-front.onrender.com",
+    origin: ["http://localhost:5173", "https://reelman-front.onrender.com"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use("/uploads", express.static("uploads"));
 app.use(express.urlencoded({ extended: true }));
+
+// Log incoming requests and CORS headers for debugging
+app.use((req, res, next) => {
+  console.log(`Request received: ${req.method} ${req.url}`);
+  console.log("Request headers:", req.headers);
+  next();
+});
 
 //routes
 const adminController = require("./Controllers/Admin/adminController");
@@ -34,6 +43,7 @@ app.use(
 );
 
 app.use("/api/v2/user", userContactForm);
+
 //for error handling
 app.use(ErrorHandler);
 app.use(notFound);
