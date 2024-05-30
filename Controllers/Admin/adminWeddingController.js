@@ -3,7 +3,6 @@ const router = express.Router();
 const Wedding = require("../../Model/Admin/adminWeddingModel");
 const upload = require("../../multer");
 const catchAsyncErrors = require("../../Middleware/CatchAsyncErrors");
-const path = require("path");
 const ErrorHandler = require("../../Utils/ErrorHandler");
 
 router.route("/get-wedding").get(
@@ -62,6 +61,10 @@ router.route("/create-wedding").post(
         cover,
       });
 
+      if (!weddingData) {
+        return next(new ErrorHandler("Data not create", 400));
+      }
+
       res.status(201).json({ success: true, weddingData });
     } catch (error) {
       return next(new ErrorHandler("Internal Server Error", 500));
@@ -76,7 +79,7 @@ router.route("/single-wedding/:id").get(
     if (!wedding) {
       return next(new ErrorHandler("No Wedding with this id", 400));
     }
-    res.status(200).json({ wedding });
+    res.status(200).json({ success: true, wedding });
   })
 );
 
@@ -105,13 +108,17 @@ router.route("/update-wedding/:id").patch(
       updatedFields.cover = req.files["cover-avatar"][0].filename;
     }
 
-    if (req.files["file"].length > 50) {
-      return res.status(400).json({ message: "Maximum 50 photos are allowed" });
-    }
+    if (req.files["file"]) {
+      if (req.files["file"].length > 50) {
+        return res
+          .status(400)
+          .json({ message: "Maximum 50 photos are allowed" });
+      }
 
-    updatedFields.weddingAvatar = req.files["file"].map(
-      (file) => file.filename
-    );
+      updatedFields.weddingAvatar = req.files["file"].map(
+        (file) => file.filename
+      );
+    }
 
     const wedding = await Wedding.findOneAndUpdate(
       { _id: weddingId },
@@ -123,9 +130,10 @@ router.route("/update-wedding/:id").patch(
       return res.status(404).json({ msg: `No wedding with id: ${weddingId}` });
     }
 
-    res.status(200).json({ wedding });
+    res.status(200).json({ success: true, wedding });
   })
 );
+
 
 router.route("/delete-wedding/:id").delete(
   catchAsyncErrors(async (req, res, next) => {
@@ -138,19 +146,19 @@ router.route("/delete-wedding/:id").delete(
   })
 );
 
-
-router.route("/latest-wedding").get(catchAsyncErrors(async(req, res, next) => {
-  try {
-    let wedding = await Wedding.find({});
-    if (!wedding) {
-      return next(new ErrorHandler("No wedding with this id", 400))
+router.route("/latest-wedding").get(
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const wedding = await Wedding.find({});
+      if (!wedding) {
+        return next(new ErrorHandler("No wedding with this id", 400));
+      }
+      const latestWedding = wedding.slice(0).slice(-4);
+      res.json({ status: true, latestWedding });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
     }
-    let latestWedding = wedding.slice(0).slice(-4);
-    res.json({ status: true, latestWedding });
-
-  } catch(error) {
-    return next(new ErrorHandler(error.message, 500))
-  }
-}))
+  })
+);
 
 module.exports = router;
